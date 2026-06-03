@@ -1,37 +1,53 @@
 const express = require('express');
-const path = require('path');
-const https = require('https');
-const http = require('http');
+const path    = require('path');
+const https   = require('https');
+const http    = require('http');
+const qs      = require('querystring');
 
-const app = express();
+const app  = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname, 'public')));
 
+// ── SMM Proxy — POST to SMMParty ─────────────────────────
 app.get('/api/smm', async (req, res) => {
-  const params = new URLSearchParams(req.query);
-  const targetUrl = `https://smmparty.com/api/v2?${params.toString()}`;
+  const postData = qs.stringify(req.query);   // key=xxx&action=services ...
+  const options  = {
+    hostname: 'smmparty.com',
+    path:     '/api/v2',
+    method:   'POST',
+    headers:  {
+      'Content-Type':   'application/x-www-form-urlencoded',
+      'Content-Length': Buffer.byteLength(postData),
+      'User-Agent':     'KingSocial/5.0',
+    },
+  };
+
   try {
-    const data = await fetchUrl(targetUrl);
-    res.setHeader('Content-Type', 'application/json');
-    res.send(data);
+    const raw  = await postRequest(options, postData);
+    const json = JSON.parse(raw);             // تأكيد إنه JSON صح
+    res.json(json);
   } catch (err) {
     res.status(500).json({ error: 'فشل الاتصال: ' + err.message });
   }
 });
 
+// ── Catch-all → index.html ────────────────────────────────
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-function fetchUrl(url) {
+// ── POST helper ───────────────────────────────────────────
+function postRequest(options, body) {
   return new Promise((resolve, reject) => {
-    const lib = url.startsWith('https') ? https : http;
-    lib.get(url, { headers: { 'User-Agent': 'KingSocial/5.0' } }, (response) => {
+    const req = https.request(options, (resp) => {
       let data = '';
-      response.on('data', chunk => data += chunk);
-      response.on('end', () => resolve(data));
-    }).on('error', reject);
+      resp.on('data', chunk => data += chunk);
+      resp.on('end', () => resolve(data));
+    });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
   });
 }
 
