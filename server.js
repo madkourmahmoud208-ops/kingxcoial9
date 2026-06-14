@@ -15,11 +15,11 @@ const app = express();
 // ══════════════════════════════════════════════════════
 
 // ══ الإعدادات — عدّل هنا مباشرةً ══════════════════════
-const ADMIN_USER = 'admin';          // يوزر الأدمن
-const ADMIN_PASS = 'admin123';       // باسوورد الأدمن
+const ADMIN_USER = 'KingAdmin2025';          // يوزر الأدمن
+const ADMIN_PASS = 'Ks@8f#mP!2025$x';       // باسوورد الأدمن
 const SMM_KEY    = '';               // API Key من SMMParty
-const TG_TOKEN   = '';               // توكن بوت التلجرام
-const TG_CHAT    = '';               // Chat ID التلجرام
+const TG_TOKEN   = '8457233918:AAFHD1dbVlPrMpC6W1jMjEMhyNMhGY9mwoI';               // توكن بوت التلجرام
+const TG_CHAT    = '6472365461';               // Chat ID التلجرام
 const PORT       = process.env.PORT || 3000; // بورت السيرفر
 // ════════════════════════════════════════════════════
 
