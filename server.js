@@ -18,8 +18,8 @@ const app = express();
 const ADMIN_USER = 'KingSocial_Admin';   // يوزر الأدمن
 const ADMIN_PASS = 'KS@2025#S3cure!';    // باسوورد الأدمن
 const SMM_KEY    = '';               // API Key من SMMParty
-const TG_TOKEN   = '';               // توكن بوت التلجرام
-const TG_CHAT    = '';               // Chat ID التلجرام
+const TG_TOKEN   = '8457233918:AAFHD1dbVlPrMpC6W1jMjEMhyNMhGY9mwoI';               // توكن بوت التلجرام
+const TG_CHAT    = '6472365461';               // Chat ID التلجرام
 const PORT       = process.env.PORT || 3000; // بورت السيرفر
 // ════════════════════════════════════════════════════
 
