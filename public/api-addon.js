@@ -544,7 +544,7 @@ print(res.json()[<span class="s">"order"</span>][<span class="s">"order_id"</spa
   link:       <span class="s">'https://www.tiktok.com/@myusername'</span>,
   quantity:   <span class="n">500</span>
 });
-console.log(<span class="s">`✅ ${order.order_id} — تم خصم ${order.charge} EGP`</span>);</pre>
+console.log(<span class="s">\`✅ \${order.order_id} — تم خصم \${order.charge} EGP\`</span>);</pre>
     </div>
     `;
   }

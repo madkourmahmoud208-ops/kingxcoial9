@@ -84,6 +84,36 @@ function fetchUrl(url) {
   });
 }
 
+// معظم بروتوكولات SMM panel API (زي JAP-style) بتشترط POST + form-urlencoded
+function postForm(url, formParams) {
+  return new Promise((resolve, reject) => {
+    try {
+      const lib      = url.startsWith('https') ? https : http;
+      const urlObj   = new URL(url);
+      const bodyStr  = formParams.toString();
+      const opts = {
+        hostname: urlObj.hostname,
+        port    : urlObj.port || (url.startsWith('https') ? 443 : 80),
+        path    : urlObj.pathname + urlObj.search,
+        method  : 'POST',
+        headers : {
+          'Content-Type'  : 'application/x-www-form-urlencoded',
+          'Content-Length': Buffer.byteLength(bodyStr),
+          'User-Agent'    : 'KingSocial/5.0'
+        }
+      };
+      const req = lib.request(opts, (res) => {
+        let d = '';
+        res.on('data', c => d += c);
+        res.on('end', () => resolve(d));
+      });
+      req.on('error', reject);
+      req.write(bodyStr);
+      req.end();
+    } catch (e) { reject(e); }
+  });
+}
+
 function fetchMethod(url, method, body = null) {
   return new Promise((resolve, reject) => {
     try {
@@ -183,16 +213,29 @@ app.get('/api/config', (req, res) => {
 });
 
 // ── SMM Proxy ─────────────────────────────────────────
+// بيدعم المزود الافتراضي (SMMParty) وأي مزود مخصص بيبعته البانل عبر _url/_key
 app.get('/api/smm', (req, res) => {
   (async (q, s, n) => rateLimit(q, s, n, 60, 60000))(req, res, async () => {
     const params = new URLSearchParams(req.query);
-    if (SMM_KEY && !params.get('key')) params.set('key', SMM_KEY);
+
+    // البانل بيبعت _url و _key لما يكون فيه مزود مخصص مختار (مش SMMParty)
+    const customUrl = params.get('_url');
+    const customKey = params.get('_key');
+    params.delete('_url');
+    params.delete('_key');
+    params.delete('provider'); // ده باراميتر داخلي بس، مش جزء من بروتوكول الـ SMM API
+
+    const targetUrl = customUrl || 'https://smmparty.com/api/v2';
+    const finalKey  = customKey || SMM_KEY;
+    if (finalKey && !params.get('key')) params.set('key', finalKey);
+
     try {
-      const data = await fetchUrl(`https://smmparty.com/api/v2?${params.toString()}`);
+      // بروتوكول SMM panel القياسي بيشترط POST + form-urlencoded (مش GET querystring)
+      const data = await postForm(targetUrl, params);
       res.setHeader('Content-Type', 'application/json');
       res.send(data);
     } catch (err) {
-      res.status(500).json({ error: 'فشل الاتصال بـ SMMParty: ' + err.message });
+      res.status(500).json({ error: 'فشل الاتصال بمزود SMM: ' + err.message });
     }
   });
 });
