@@ -3123,7 +3123,7 @@ async function loadServerConfig() {
 }
 
 // ── FIREBASE INIT (safe) ──────────────────────────────────
-(async function() {
+let fbReady = (async function() {
   await loadServerConfig();
   try {
     firebase.initializeApp(CFG.firebase);
@@ -4369,9 +4369,10 @@ function renderSmmProvidersList(container){
 }
 
 function saveSmmProvidersToFB(){
+  return fbReady.then(function(){
   if(!FB_OK){
     toast('⚠️ قاعدة البيانات مش متصلة — راجع إعدادات Firebase (CFG.firebase)، التعديل مش هيتحفظ','err');
-    return Promise.reject(new Error('FB_NOT_CONNECTED'));
+    throw new Error('FB_NOT_CONNECTED');
   }
   var obj={};
   CFG.smm.providers.forEach(function(p){
@@ -4382,6 +4383,7 @@ function saveSmmProvidersToFB(){
   return Promise.all([p1,p2]).catch(function(e){
     toast('❌ فشل الحفظ في قاعدة البيانات: '+e.message,'err');
     throw e;
+  });
   });
 }
 
@@ -4657,6 +4659,7 @@ async function smmCall(params, retries=2){
 
 // ── تحميل قائمة الـ providers من Firebase وتطبيقها ──
 async function loadSmmProviders(){
+  await fbReady;
   if(!FB_OK) return;
   try {
     const snap = await DB.ref('config/smmProviders').once('value');
