@@ -232,8 +232,18 @@ app.get('/api/smm', (req, res) => {
     try {
       // بروتوكول SMM panel القياسي بيشترط POST + form-urlencoded (مش GET querystring)
       const data = await postForm(targetUrl, params);
-      res.setHeader('Content-Type', 'application/json');
-      res.send(data);
+      // بعض المزودين بيرجعوا صفحة HTML/نص عادي بدل JSON (مفتاح غلط/رابط غلط/سيرفرهم واقع)
+      // فبنتأكد الأول قبل ما نبعتها للبانل، عشان مايحصلش JSON.parse crash في الواجهة
+      try {
+        JSON.parse(data);
+        res.setHeader('Content-Type', 'application/json');
+        res.send(data);
+      } catch {
+        res.status(502).json({
+          error: 'المزود رجّع رد مش JSON — تأكد من رابط API الصحيح ومن الـ Key. أول جزء من الرد: '
+                 + String(data).replace(/<[^>]*>/g, ' ').trim().slice(0, 150)
+        });
+      }
     } catch (err) {
       res.status(500).json({ error: 'فشل الاتصال بمزود SMM: ' + err.message });
     }
