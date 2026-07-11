@@ -4369,13 +4369,20 @@ function renderSmmProvidersList(container){
 }
 
 function saveSmmProvidersToFB(){
-  if(!FB_OK)return;
+  if(!FB_OK){
+    toast('⚠️ قاعدة البيانات مش متصلة — راجع إعدادات Firebase (CFG.firebase)، التعديل مش هيتحفظ','err');
+    return Promise.reject(new Error('FB_NOT_CONNECTED'));
+  }
   var obj={};
   CFG.smm.providers.forEach(function(p){
     obj[p.id]={name:p.name,url:p.url,key:p.key||''};
   });
-  DB.ref('config/smmProviders').set(obj);
-  if(CFG.smm.activeProvider) DB.ref('config/smmActive').set(CFG.smm.activeProvider);
+  var p1=DB.ref('config/smmProviders').set(obj);
+  var p2=CFG.smm.activeProvider ? DB.ref('config/smmActive').set(CFG.smm.activeProvider) : Promise.resolve();
+  return Promise.all([p1,p2]).catch(function(e){
+    toast('❌ فشل الحفظ في قاعدة البيانات: '+e.message,'err');
+    throw e;
+  });
 }
 
 function modalAddSmmProvider(onDone, editProv){
@@ -4417,23 +4424,32 @@ function modalAddSmmProvider(onDone, editProv){
       }
     });
     var saveBtn=mk('button','btn bp','');saveBtn.innerHTML='<i class="fas fa-floppy-disk"></i> '+(isEdit?'حفظ التعديلات':'إضافة');
-    saveBtn.addEventListener('click',function(){
+    saveBtn.addEventListener('click',async function(){
       var id2=document.getElementById('prov-id')?.value.trim().replace(/\s+/g,'_');
       var nm2=document.getElementById('prov-name')?.value.trim();
       var ur2=document.getElementById('prov-url')?.value.trim();
       var ky2=document.getElementById('prov-key')?.value.trim();
       if(!id2||!nm2||!ur2||!ky2){toast('كل الحقول مطلوبة','err');return;}
+      var addedNew=false, prevSnapshot=CFG.smm.providers.slice();
       if(isEdit){
         var ex=CFG.smm.providers.find(function(p){return p.id===id2;});
         if(ex){ex.name=nm2;ex.url=ur2;ex.key=ky2;}
       } else {
         if(CFG.smm.providers.find(function(p){return p.id===id2;})){toast('المعرف موجود بالفعل','err');return;}
         CFG.smm.providers.push({id:id2,name:nm2,url:ur2,key:ky2});
+        addedNew=true;
         if(!CFG.smm.activeProvider) CFG.smm.activeProvider=id2;
       }
-      saveSmmProvidersToFB();
-      toast('✅ تم '+(isEdit?'تعديل':'إضافة')+' '+nm2,'ok');
-      closeModal();if(onDone)onDone();
+      saveBtn.disabled=true;
+      try{
+        await saveSmmProvidersToFB();
+        toast('✅ تم '+(isEdit?'تعديل':'إضافة')+' '+nm2,'ok');
+        closeModal();if(onDone)onDone();
+      }catch(e){
+        // فشل الحفظ فعلياً — نرجّع الحالة زي ما كانت عشان الواجهة متكدبش
+        CFG.smm.providers=prevSnapshot;
+        saveBtn.disabled=false;
+      }
     });
     tbRow.appendChild(testBtn);tbRow.appendChild(saveBtn);body.appendChild(tbRow);
   });
